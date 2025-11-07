@@ -1,47 +1,59 @@
-# Frontend Code Style Guide
-This document outlines coding standards based on the Vue.js Official Style Guide and established JavaScript conventions.
+# Backend Code Style Guide
+This document outlines coding standards derived from established Python conventions and practices observed within the existing Flask/Database application.
 
-## 1. General Standards
-### 1.1. Application Scope
-* Applies to all frontend development (JavaScript, HTML, and Vue components)
+# General Guidelines
+## 1.1. Scope
++ Applies to all backend components, including Python, Flask, and database-related code.
 
-### 1.2. Naming Conventions
-* Avoid non-descriptive names (examples: a_2, temp_var)
-* Implement proper naming formats (examples: loginState, isFilling)
+## 1.2. Naming Conventions
++ Avoid ambiguous or unclear names.
++ Choose meaningful and descriptive identifiers.
++ Naming Standards
++ Modules/Files: snake_case
++ Functions/Methods (excluding FastAPI wrapper): camelCase
++ Functions/Methods (within FastAPI wrapper): snake_case
++ Variables: snake_case
++ Classes (Pydantic Models): PascalCase
++ Constants: UPPER_CASE_WITH_UNDERSCORES
++ Database Collections: snake_case (preferably plural form)
 
-## 2. Naming Protocols
-* Component Files: Apply camelCase formatting (examples: contact.vue, userProfile.vue)
-* Component Tags: Implement kebab-case formatting (examples: <el-button>, <user-profile>)
-* Function Names: Utilize camelCase formatting (examples: loadContacts, validateForm)
-* Variable Names: Apply camelCase formatting (examples: loading, formRef)
-* Constant Values: Use UPPERCASE_WITH_UNDERSCORES (examples: API_BASE_URL, MAX_RETRY_COUNT)
-* Component Properties: Implement kebab-case formatting (examples: :user-data="userInfo", @click="submitForm")
+## 3.1. General Rules
++ Indentation: 4 spaces per level
++ Line Length: Limit to 79 characters where possible
++ Quotes: Prefer double quotes (") for string definitions
 
-## 3. Code Formatting
-### 3.1. Basic Formatting
-* Indentation: Implement 2-space indentation (avoid tab characters)
-* Statement Termination: Include semicolons at statement conclusions
-### 3.2. Import Organization
-* Maintain separate import lines with grouping in this sequence:
-* Framework imports (examples: vue, vue-router)
-* External library imports (examples: element-plus, axios)
-* Internal module imports (examples: from '../api', from './components/...')
+## 3.2. Import Organization
++ Arrange imports in separate lines, grouped as follows:
++ Standard library modules
++ Third-party packages
++ Local application-specific imports
++ Function and Endpoint Design
++ Decorators: Place FastAPI decorators directly above async def or def statements
++ Type Annotations: Include type hints for all parameters and return values
++ Input Handling: Utilize FastAPI/Pydantic constructs such as Header(None) and structured models for processing inputs
 
-## 4. Component Architecture
-* Script Setup: Implement syntax for new components
-* Style Scoping: Apply scoped attribute to component styles to prevent CSS leakage
-### 4.1. Component Implementation
-* Apply ref for basic data types and individual object/array references
-* Implement reactive for complex data structures requiring direct modification
-* Define functions using const functionName = () => {} syntax
-### 4.2. Lifecycle Management
-* Directly integrate lifecycle hooks (onMounted, onUpdated) within
+## 4.1. RESTful API Principles
++ Adhere to RESTful design patterns:
++ GET: Retrieve data
++ POST: Create new records
++ PUT: Update existing records
++ DELETE: Remove records
 
-# 5. Application Architecture & API Integration
-### 5.1. Core Principles
-* API Management: Centralize API interactions through dedicated modules (examples: api.js, api/index.js)
-* Asynchronous Operations: Employ async/await patterns for handling asynchronous tasks
-* Error Management: Enclose API calls within try...catch blocks and implement user notification systems
-### 5.2. State Management
-* Implement loading state tracking (example: loading = ref(false)) for API operations
-* Utilize loading states to deactivate interactive elements and prevent duplicate requests
+## 4.2. Core Implementation
++ Database Connectivity: Verify active database connections at the start of critical functions
++ Data Validation: Perform explicit checks for unique constraints and business rules prior to database operations
++ Access Control: Centralize authentication checks (e.g., token validation logic)
+
+## 4.3. Exception Management
+
++ Standard Errors: Employ HTTPException to return appropriate HTTP status codes (e.g., 400, 401, 404, 500)
++ Error Containment: Enclose complex or failure-prone operations in try-except blocks, returning HTTP 500 responses for unhandled exceptions
++ Database Operations
+
+## 5.1. General Practices
++ Object Identification: Convert string IDs from URLs using ObjectId() for document queries
++ Unique Identifiers: Centralize UID generation mechanisms (e.g., through dedicated utility functions)
+
+## 5.2. Query Methods
++ Single Results: Apply find_one for individual document retrieval
++ Multiple Results: Use list(collection.find(...)) for querying multiple documents
