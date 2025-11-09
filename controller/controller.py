@@ -1,4 +1,5 @@
 # Create Contact - POST
+import jwt
 from flask import app, Blueprint, request, jsonify
 from sqlalchemy import or_
 
@@ -7,195 +8,114 @@ from models.model import Contact, db, User
 controller = Blueprint('controller', __name__)
 app = controller
 
-@app.route('/user/update', methods=['POST'])
-def user_update():
-    try:
-
-        data = request.get_json()
-        user = User.query.get_or_404(data['id'])
-        user.name = data['name']
-        user.mail = data['mail']
-        user.phone = data['phone']
-        user.address = data['address']
-
-        db.session.commit()
-        return jsonify({
-            'message': 'Contact updated successfully',
-            'contact': user.to_dict()
-        }), 200
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/login', methods=['POST'])
-def login():
-    try:
-        data = request.get_json()
-
-        # Validate required fields
-        required_fields = ['account', 'password']
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return jsonify({'error': f'Field {field} is required'}), 400
-
-        exist = User.query.filter(
-            or_(User.id == data['account'], User.name == data['account'], User.mail == data['account'], User.phone == data['account'])
-        ).first()
-
-        if not exist:
-            return jsonify({'message': 'Login Error', 'code': 400}), 200
-
-        if exist.password != data['password']:
-            return jsonify({'message': 'Login Error', 'code': 400}), 200
-
-        return jsonify({
-            'message': 'Login Success',
-            'contact': exist.to_dict()
-        }), 200
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
-    try:
-        data = request.get_json()
+    data = request.get_json()
 
-        # Validate required fields
-        required_fields = ['name', 'mail', 'phone', 'address', 'password']
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return jsonify({'error': f'Field {field} is required'}), 400
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'message': 'Username already exists'}), 400
 
-        user = User(
-            name=data['name'],
-            mail=data['mail'],
-            phone=data['phone'],
-            address=data['address'],
-            password=data['password']
-        )
+    hashed_password = data['password']
+    new_user = User(
+        username=data['username'],
+        password=hashed_password,
+        nickname=data['nickname'],
+        realname=data['realname']
+    )
 
-        db.session.add(user)
-        db.session.commit()
+    db.session.add(new_user)
+    db.session.commit()
 
+    return jsonify({'message': 'User registered successfully'}), 201
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    user = User.query.filter_by(username=data['username']).first()
+
+    if user and user.password == data['password']:
         return jsonify({
-            'message': 'Register Success',
-            'contact': user.to_dict()
-        }), 201
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/contacts', methods=['POST'])
-def create_contact():
-    try:
-        data = request.get_json()
-
-        # Validate required fields
-        required_fields = ['name', 'mail', 'phone', 'address']
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return jsonify({'error': f'Field {field} is required'}), 400
-
-        # Create new contact
-        contact = Contact(
-            name=data['name'],
-            mail=data['mail'],
-            phone=data['phone'],
-            address=data['address']
-        )
-
-        db.session.add(contact)
-        db.session.commit()
-
-        return jsonify({
-            'message': 'Contact created successfully',
-            'contact': contact.to_dict()
-        }), 201
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/contacts/uid', methods=['GET'])
-def get_all_contacts_uid():
-    try:
-        uid = request.args.get('uid', '')
-        user = User.query.filter(User.id == uid).first()
-        if not user:
-            return jsonify({'message': 'Uid does not exist', 'code': 400})
-
-        contact = Contact(
-            name=user.name,
-            mail=user.mail,
-            phone=user.phone,
-            address=user.address
-        )
-        db.session.add(contact)
-        db.session.commit()
-        return jsonify({'message': 'Success', 'code': 200})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Get All Contacts - GET
-@app.route('/contacts', methods=['GET'])
-def get_all_contacts():
-    try:
-        name_query = request.args.get('name', '')
-        contacts = None
-        if not name_query:
-            contacts = Contact.query.all()
-        else:
-            contacts = Contact.query.filter(Contact.name.ilike(f'%{name_query}%')).all()
-
-        return jsonify({
-            'contacts': [contact.to_dict() for contact in contacts],
-            'count': len(contacts)
-        }), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Update Contact - PUT
-@app.route('/contacts/<int:id>', methods=['PUT'])
-def update_contact(id):
-    try:
-        contact = Contact.query.get_or_404(id)
-        data = request.get_json()
-
-        # Update fields
-        if 'name' in data:
-            contact.name = data['name']
-        if 'mail' in data:
-            contact.mail = data['mail']
-        if 'phone' in data:
-            contact.phone = data['phone']
-        if 'address' in data:
-            contact.address = data['address']
-
-        db.session.commit()
-
-        return jsonify({
-            'message': 'Contact updated successfully',
-            'contact': contact.to_dict()
+            'message': 'Login successful',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'nickname': user.nickname,
+                'realname': user.realname
+            }
         }), 200
 
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'Invalid credentials'}), 401
 
-# Delete Contact - DELETE
-@app.route('/contacts/<int:contact_id>', methods=['DELETE'])
+@app.route('/api/profile/<int:user_id>', methods=['PUT'])
+def update_profile(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    data = request.get_json()
+    user.nickname = data.get('nickname', user.nickname)
+    user.realname = data.get('realname', user.realname)
+
+    if 'password' in data and data['password']:
+        user.password = data['password']
+
+    db.session.commit()
+
+    return jsonify({'message': 'Profile updated successfully'}), 200
+
+# Contact routes
+@app.route('/api/contacts', methods=['GET'])
+def get_contacts():
+    contacts = Contact.query.all()
+    return jsonify([{
+        'id': contact.id,
+        'name': contact.name,
+        'phone': contact.phone,
+        'email': contact.email,
+        'gender': contact.gender,
+        'age': contact.age
+    } for contact in contacts])
+
+@app.route('/api/contacts', methods=['POST'])
+def add_contact():
+    data = request.get_json()
+    new_contact = Contact(
+        name=data['name'],
+        phone=data['phone'],
+        email=data['email'],
+        gender=data['gender'],
+        age=data['age']
+    )
+
+    db.session.add(new_contact)
+    db.session.commit()
+
+    return jsonify({'message': 'Contact added successfully'}), 201
+
+@app.route('/api/contacts/<int:contact_id>', methods=['PUT'])
+def update_contact(contact_id):
+    contact = Contact.query.get(contact_id)
+    if not contact:
+        return jsonify({'message': 'Contact not found'}), 404
+
+    data = request.get_json()
+    contact.name = data.get('name', contact.name)
+    contact.phone = data.get('phone', contact.phone)
+    contact.email = data.get('email', contact.email)
+    contact.gender = data.get('gender', contact.gender)
+    contact.age = data.get('age', contact.age)
+
+    db.session.commit()
+
+    return jsonify({'message': 'Contact updated successfully'}), 200
+
+@app.route('/api/contacts/<int:contact_id>', methods=['DELETE'])
 def delete_contact(contact_id):
-    try:
-        contact = Contact.query.get_or_404(contact_id)
+    contact = Contact.query.get(contact_id)
+    if not contact:
+        return jsonify({'message': 'Contact not found'}), 404
 
-        db.session.delete(contact)
-        db.session.commit()
+    db.session.delete(contact)
+    db.session.commit()
 
-        return jsonify({'message': 'Contact deleted successfully'}), 200
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+    return jsonify({'message': 'Contact deleted successfully'}), 200
